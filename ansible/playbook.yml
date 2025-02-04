@@ -1,0 +1,55 @@
+- name: Deploy website
+  hosts: servers
+  become: true
+  tasks:
+
+    # 1️ Update and Install Required Packages
+    - name: Install required packages
+      apt:
+        name: 
+          - git
+          - nginx
+          - nodejs
+          - npm
+        state: present
+        update_cache: yes
+
+    # 2️ Clone or Update Repository
+    - name: Clone or pull latest code
+      git:
+        repo: "https://github.com/AeonPSR/backpack_API"
+        dest: "/var/www/backpack"
+        version: main
+        update: yes
+
+    # 3️ Install Frontend Dependencies & Build (if applicable)
+    - name: Install frontend dependencies
+      shell: "cd /var/www/backpack/backpack-front && npm install && npm run build"
+
+    # 4️ Install Backend Dependencies
+    - name: Install backend dependencies
+      shell: "cd /var/www/backpack/backpack-api && pip install -r requirements.txt"
+
+    # 5️ Restart Backend API (Assuming Flask or Node.js)
+    - name: Restart backend API
+      shell: "pm2 restart backpack-api || pm2 start /var/www/backpack/backpack-api/app.js --name backend"
+
+    # 6️ Configure Nginx (Reverse Proxy)
+    - name: Copy Nginx config
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/sites-available/backpack
+      notify: Restart Nginx
+
+    - name: Enable Nginx site
+      file:
+        src: /etc/nginx/sites-available/backpack
+        dest: /etc/nginx/sites-enabled/backpack
+        state: link
+      notify: Restart Nginx
+
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
