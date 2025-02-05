@@ -5,17 +5,18 @@
       git:
         repo: 'https://github.com/AeonPSR/backpack_API'
         dest: /var/www/backpack
-        version: main
+        version: master
+        force: yes
 
     - name: Installer les dépendances
       command: npm install
       args:
-        chdir: /var/www/backpack
+        chdir: /var/www/backpack/backpack-front
     
     - name: Générer le build
       command: npm run build
       args:
-        chdir: /var/www/backpack
+        chdir: /var/www/backpack/backpack-front
 
     - name: Vérifier si Next.js tourne déjà
       shell: pgrep -f "npm run start"
@@ -25,8 +26,10 @@
     - name: Arrêter Next.js s'il tourne
       shell: pkill -f "npm run start"
       when: nextjs_running.rc == 0
+      ignore_errors: yes
+
 
     - name: Lancer Next.js en mode production
       shell: nohup npm run start -- --hostname 0.0.0.0 --port 3000 > /var/www/backpack/nextjs.log 2>&1 &
       args:
-        chdir: /var/www/backpack
+        chdir: /var/www/backpack/backpack-front
